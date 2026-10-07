@@ -2,10 +2,10 @@
 GameEngine: owns the basket and all falling objects.
 
 Starter version: basket movement and spawning both work at a basic
-level (Tasks 2 and 3 ask you to improve them), there's no speed boost
-yet (Task 4 builds it from scratch), and catch detection has two
-known bugs (see game/collision.py and the catch-checking loop below)
-that Task 1 asks you to fix.
+level (Tasks 2 and 3 ask you to improve them), and there's no speed
+boost yet (Task 4 builds it from scratch). Task 1 (catch detection:
+height check in game/collision.py, and the catch-checking loop below
+no longer mutating the list it iterates over) is fixed.
 """
 
 import random
@@ -61,11 +61,16 @@ class GameEngine:
         for obj in self.objects:
             obj.update()
 
+        # Split objects into caught / not caught in one pass, then rebuild
+        # the list, so nothing is removed from the list while iterating it.
         basket_rect = self.basket.get_rect()
-        for obj in self.objects:                  # BUG: mutating this list while iterating over it
+        remaining = []
+        for obj in self.objects:
             if is_caught(basket_rect, obj):
                 self.score += 1
-                self.objects.remove(obj)
+            else:
+                remaining.append(obj)
+        self.objects = remaining
 
         missed = [o for o in self.objects if o.is_past_bottom(HEIGHT)]
         if missed:
