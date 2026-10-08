@@ -16,7 +16,11 @@ from game.falling_object import FallingObject
 from game.collision import is_caught
 from game.renderer import WIDTH, HEIGHT
 
-SPAWN_INTERVAL_FRAMES = 50
+MIN_SPAWN_INTERVAL = 30      # frames between spawns, picked at random
+MAX_SPAWN_INTERVAL = 70      # from this range
+MAX_OBJECTS = 6              # most objects allowed on screen at once
+MIN_SPAWN_DISTANCE = 60      # new spawn must be this far (px) from the last
+OBJECT_RADIUS = 14           # keeps spawns fully inside the screen
 MAX_MISSES = 5
 
 
@@ -25,13 +29,24 @@ class GameEngine:
         self.basket = Basket(x=WIDTH / 2, y=HEIGHT - 30)
         self.objects = []
         self.frames_until_spawn = 0
+        self.last_spawn_x = None
         self.score = 0
         self.misses = 0
         self.game_over = False
 
+    def _pick_spawn_x(self):
+        """Random x inside the screen, not too close to the last spawn."""
+        x = random.randint(OBJECT_RADIUS, WIDTH - OBJECT_RADIUS)
+        for _ in range(10):
+            if self.last_spawn_x is None or abs(x - self.last_spawn_x) >= MIN_SPAWN_DISTANCE:
+                break
+            x = random.randint(OBJECT_RADIUS, WIDTH - OBJECT_RADIUS)
+        return x
+
     def _spawn_object(self):
-        x = random.randint(20, WIDTH - 20)
-        self.objects.append(FallingObject(x=x, y=-14, speed=3))
+        x = self._pick_spawn_x()
+        self.last_spawn_x = x
+        self.objects.append(FallingObject(x=x, y=-OBJECT_RADIUS, speed=3))
 
     def handle_input(self, keys_pressed):
         if self.game_over:
@@ -57,8 +72,9 @@ class GameEngine:
 
         self.frames_until_spawn -= 1
         if self.frames_until_spawn <= 0:
-            self._spawn_object()
-            self.frames_until_spawn = SPAWN_INTERVAL_FRAMES
+            if len(self.objects) < MAX_OBJECTS:
+                self._spawn_object()
+            self.frames_until_spawn = random.randint(MIN_SPAWN_INTERVAL, MAX_SPAWN_INTERVAL)
 
         for obj in self.objects:
             obj.update()
