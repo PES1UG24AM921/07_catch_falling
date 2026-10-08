@@ -1,11 +1,8 @@
 """
 GameEngine: owns the basket and all falling objects.
 
-Starter version: basket movement and spawning both work at a basic
-level (Tasks 2 and 3 ask you to improve them), and there's no speed
-boost yet (Task 4 builds it from scratch). Task 1 (catch detection:
-height check in game/collision.py, and the catch-checking loop below
-no longer mutating the list it iterates over) is fixed.
+Tasks 1-4 are done: catch detection, basket boundaries and movement,
+controlled spawning, and a temporary SPACE speed boost with a cooldown.
 """
 
 import random
@@ -21,6 +18,8 @@ MAX_SPAWN_INTERVAL = 70      # from this range
 MAX_OBJECTS = 6              # most objects allowed on screen at once
 MIN_SPAWN_DISTANCE = 60      # new spawn must be this far (px) from the last
 OBJECT_RADIUS = 14           # keeps spawns fully inside the screen
+BOOST_DURATION_FRAMES = 180  # ~3 seconds at 60 FPS
+BOOST_COOLDOWN_FRAMES = 300  # ~5 seconds after a boost ends
 MAX_MISSES = 5
 
 
@@ -30,6 +29,7 @@ class GameEngine:
         self.objects = []
         self.frames_until_spawn = 0
         self.last_spawn_x = None
+        self.boost_cooldown = 0
         self.score = 0
         self.misses = 0
         self.game_over = False
@@ -65,6 +65,9 @@ class GameEngine:
     def handle_keydown(self, key):
         if self.game_over and key == pygame.K_r:
             self.__init__()
+        elif key == pygame.K_SPACE and not self.game_over:
+            if not self.basket.is_boosted and self.boost_cooldown == 0:
+                self.basket.activate_boost(BOOST_DURATION_FRAMES)
 
     def update(self):
         if self.game_over:
@@ -78,6 +81,14 @@ class GameEngine:
 
         for obj in self.objects:
             obj.update()
+
+        # Count the boost down; start the cooldown the frame it expires.
+        was_boosted = self.basket.is_boosted
+        self.basket.update_boost()
+        if was_boosted and not self.basket.is_boosted:
+            self.boost_cooldown = BOOST_COOLDOWN_FRAMES
+        elif self.boost_cooldown > 0:
+            self.boost_cooldown -= 1
 
         # Split objects into caught / not caught in one pass, then rebuild
         # the list, so nothing is removed from the list while iterating it.
@@ -103,5 +114,15 @@ class GameEngine:
         renderer.draw_text(surface, font, f"Score: {self.score}", (10, 10))
         renderer.draw_text(surface, font, f"Misses: {self.misses}/{MAX_MISSES}", (10, 36))
 
+        if self.basket.is_boosted:
+            seconds_left = self.basket.boosted_frames / 60
+            renderer.draw_text(surface, font, f"BOOST! {seconds_left:.1f}s", (10, 62),
+                               renderer.COLOR_BOOST_TEXT)
+        elif self.boost_cooldown > 0:
+            renderer.draw_text(surface, font, f"Boost cooldown: {self.boost_cooldown / 60:.1f}s", (10, 62))
+        else:
+            renderer.draw_text(surface, font, "Boost ready (SPACE)", (10, 62))
+
         if self.game_over:
             renderer.draw_banner(surface, font, f"Game Over! Final score: {self.score}. Press R to restart.")
+            

@@ -14,7 +14,22 @@ class Basket:
         self.speed = speed
         self.boosted_frames = 0
         self.normal_speed = speed
-        self.boost_speed = speed
+        self.boost_speed = speed * 2
+
+    @property
+    def is_boosted(self):
+        return self.boosted_frames > 0
+
+    def activate_boost(self, frames):
+        self.boosted_frames = frames
+        self.speed = self.boost_speed
+
+    def update_boost(self):
+        """Call once per frame: counts the boost down and reverts speed."""
+        if self.boosted_frames > 0:
+            self.boosted_frames -= 1
+            if self.boosted_frames == 0:
+                self.speed = self.normal_speed
 
     def get_rect(self):
         return pygame.Rect(

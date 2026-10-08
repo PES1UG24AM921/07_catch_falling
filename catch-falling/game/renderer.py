@@ -9,6 +9,8 @@ WINDOW_SIZE = (WIDTH, HEIGHT)
 
 COLOR_BG = (25, 30, 45)
 COLOR_BASKET = (150, 110, 70)
+COLOR_BASKET_BOOST = (255, 200, 60)
+COLOR_BOOST_TEXT = (255, 200, 60)
 COLOR_TEXT = (255, 255, 255)
 
 
@@ -16,7 +18,8 @@ def draw_scene(surface, basket, objects):
     surface.fill(COLOR_BG)
     for obj in objects:
         pygame.draw.circle(surface, obj.color, (int(obj.x), int(obj.y)), obj.radius)
-    pygame.draw.rect(surface, COLOR_BASKET, basket.get_rect(), border_radius=6)
+    basket_color = COLOR_BASKET_BOOST if basket.is_boosted else COLOR_BASKET
+    pygame.draw.rect(surface, basket_color, basket.get_rect(), border_radius=6)
 
 
 def draw_text(surface, font, text, pos, color=COLOR_TEXT):
